@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="gemini-neon">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#100426" />
+  <title>AI UNIVERSE v6.9.3.1 — Multi-AI &amp; Autonomous PC Workspace</title>
+  <link rel="stylesheet" href="css/style.css?v=6.9.10" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div id="mobileOverlay" class="mobile-overlay hidden"></div>
+
+  <!-- GOOGLE SIGN-IN OVERLAY -->
+  <div id="authGateOverlay" class="auth-gate hidden">
+    <div class="auth-gate-card">
+      <div class="auth-gate-logo">✦</div>
+      <h1>AI UNIVERSE <span class="ver-chip">v6.9.3.1</span></h1>
+      <p class="muted">Sign in with your Google account to sync your chats, API keys, PC Bridge settings, and creations across Desktop and Android via Firebase Realtime Database.</p>
+      <button id="authGateGoogleBtn" type="button" class="btn btn-primary google-signin-cta">
+        <span class="g-badge">G</span>
+        <span>Continue with Google</span>
+      </button>
+      <div id="authGateError" class="test-result"></div>
+      <button id="authGateSkipBtn" type="button" class="mini-btn sm-top">Use Local Mode without Sync</button>
+      <div class="creator-mini-foot">Created by <strong>Ayman Chowdhury (TLTOM)</strong></div>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <!-- GEMINI DRAWER SIDEBAR -->
+    <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+      <div class="sidebar-header">
+        <div class="brand-wrap" id="brandHomeBtn" title="AI UNIVERSE Home">
+          <span class="brand-icon">✦</span>
+          <span class="brand-title sidebar-label">AI UNIVERSE</span>
+        </div>
+        <div class="sidebar-header-actions">
+          <button id="toggleSearchBtn" class="icon-btn sidebar-label" title="Search chats" aria-label="Search chats">🔍</button>
+          <button id="toggleSidebarBtn" class="icon-btn" title="Expand / Collapse sidebar" aria-label="Toggle sidebar">◧</button>
+        </div>
+      </div>
+
+      <div id="sidebarSearchWrap" class="sidebar-search-wrap hidden">
+        <input id="chatSearchInput" type="text" class="input-dark" placeholder="Search all chats..." />
+      </div>
+
+      <nav class="sidebar-nav">
+        <button id="newChatBtn" class="nav-item nav-new-chat" title="New chat">
+          <span class="nav-ico">✎</span>
+          <span class="sidebar-label">New chat</span>
+        </button>
+
+        <button class="nav-item view-nav-btn active" data-view="chatView" title="Chat">
+          <span class="nav-ico">✦</span>
+          <span class="sidebar-label">Chat</span>
+        </button>
+
+        <button class="nav-item view-nav-btn" data-view="pluginsView" title="Plugins (Canva, Google Drive, Photos, PC Bridge)">
+          <span class="nav-ico">🧩</span>
+          <span class="sidebar-label">Plugins</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-section-header sidebar-label">
+        <span>All</span>
+        <span id="totalChatsCount" class="muted-xs">0</span>
+      </div>
+      <div id="savedChatsList" class="chat-history-list sidebar-label"></div>
+
+      <div class="sidebar-footer">
+        <div class="mode-strip sidebar-label">
+          <div class="row-between">
+            <span class="label-xs">🖥️ PC Mode (/pc)</span>
+            <span id="bridgeMiniStatus" class="badge badge-warn">Unlinked</span>
+          </div>
+          <div class="toggle-pair sm-top">
+            <button id="permAskBtn" class="toggle-btn active" title="Request approval before every PC action">🛡️ Ask Each Time</button>
+            <button id="permAllowBtn" class="toggle-btn" title="Allow ordinary actions for this session">⚡ Allow at Once</button>
+          </div>
+          <div id="sessionGrantMiniInfo" class="session-mini-note hidden">PC session active</div>
+        </div>
+
+        <button id="openCreatorBtn" class="creator-sidebar-btn sidebar-label" title="About AI UNIVERSE & Creator">
+          <span>👤 Created by Ayman Chowdhury (TLTOM)</span>
+        </button>
+
+        <div class="account-footer-row">
+          <button id="googleAuthBtn" class="account-card" title="Sign in with Google (Firebase Sync)">
+            <div id="userAvatarWrap" class="user-avatar">G</div>
+            <div class="account-info sidebar-label">
+              <div id="userDisplayName" class="account-name">Sign in with Google</div>
+              <div id="userSyncStatus" class="account-sub">Firebase Realtime Sync</div>
+            </div>
+          </button>
+          <button id="openSettingsSidebarBtn" class="icon-btn" title="API Keys & PC Bridge Settings" aria-label="Settings">⚙️</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN STAGE -->
+    <main class="main-stage">
+      <div id="firebaseSetupBanner" class="setup-banner hidden">
+        <span>🔥 <strong>Firebase Setup Needed:</strong> Open <code>js/firebase-config.js</code> and paste your Firebase project config to enable Google Auth and cloud sync.</span>
+        <button id="dismissSetupBannerBtn" type="button" class="mini-btn">Dismiss</button>
+      </div>
+
+      <header class="stage-topbar">
+        <div class="topbar-left">
+          <button id="mobileMenuBtn" class="icon-btn mobile-only" title="Open menu" aria-label="Open menu">☰</button>
+          <div class="topbar-model-picker">
+            <button type="button" id="topbarModelTrigger" class="topbar-model-btn" title="Select AI Provider & Model">
+              <span id="topbarModelLabel">Gemini 4 Hydrogen</span>
+              <span class="caret">▾</span>
+            </button>
+            <div id="topbarModelMenu" class="pill-menu topbar-dropdown-menu hidden"></div>
+          </div>
+          <span id="apiStatusPill" class="badge badge-warn">API Key Required</span>
+          <span id="cloudSyncPill" class="badge badge-cloud hidden">🔥 Synced</span>
+        </div>
+        <div class="topbar-right">
+          <span id="routeStatusBadge" class="badge badge-pro hidden">Working...</span>
+          <button id="backToChatTopBtn" class="btn btn-outline hidden">← Chat</button>
+          <button id="forceSaveTopBtn" class="mini-btn desktop-only hidden" title="Sync to Firebase now">☁️ Save</button>
+          <button id="signOutTopBtn" class="mini-btn desktop-only hidden" title="Sign out of Google">Sign out</button>
+          <button id="openSettingsTopBtn" class="icon-btn" title="API Keys & PC Bridge Settings" aria-label="Settings">⚙️</button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: CHAT + PROMPT-DRIVEN PREVIEW, GEMINI PHOTO/VIDEO & FLOW VIDEO EDITING + /pc MODE -->
+      <section id="chatView" class="stage-view active">
+        <div id="chatScrollArea" class="chat-scroll-area empty-mode">
+          <div id="welcomeHero" class="welcome-hero">
+            <div class="gemini-sparkle-hero" aria-hidden="true">✦</div>
+            <h1 id="welcomeHeading" class="welcome-heading">What's the vibe, Ayman?</h1>
+            <p class="welcome-sub">Connect Gemini (with Google AI Studio API key), Claude, ChatGPT, Flow AI, Antigravity, Grok, and DeepSeek. Use <code>/pc &lt;instruction&gt;</code> in chat to run PC actions across any selected AI model.</p>
+          </div>
+
+          <div id="chatMessages" class="messages-stream hidden"></div>
+        </div>
+
+        <div id="slowResponseBanner" class="slow-banner hidden" role="status">
+          <div class="slow-banner-text">
+            <span class="slow-dot"></span>
+            <span id="slowBannerMessage">The selected model is taking longer than expected...</span>
+          </div>
+          <div class="slow-banner-actions">
+            <button id="slowKeepWaitingBtn" type="button" class="mini-btn">⏳ Keep Waiting</button>
+            <button id="slowChooseAltBtn" type="button" class="btn btn-primary compact-btn">🔄 Switch Model...</button>
+          </div>
+        </div>
+
+        <div id="composerDock" class="composer-dock centered">
+          <div class="chatbar-pill" id="chatbarDropZone">
+            <div id="attachmentChipsBar" class="attachment-chips-bar hidden"></div>
+
+            <input
+              type="file"
+              id="chatFileInput"
+              class="hidden"
+              multiple
+              accept="image/*,video/*,.zip,.pdf,.txt,.md,.html,.css,.js,.ts,.jsx,.tsx,.json,.csv,.py,.java,.kt,.c,.cpp,.xml,.sql,.bat,.sh"
+            />
+
+            <div class="chatbar-input-row">
+              <button id="quickPlusBtn" type="button" class="icon-btn plus-btn" title="More Actions" aria-label="More actions">+</button>
+              <button id="attachFileBtn" type="button" class="icon-btn attach-btn" title="Upload Photo, Video, File, or ZIP" aria-label="Attach files">📎</button>
+              <textarea id="promptInput" rows="1" placeholder="Ask Gemini, Claude, ChatGPT, Flow AI, Antigravity, Grok, DeepSeek, or type /pc ..."></textarea>
+              <div id="slashCommandMenu" class="slash-command-menu hidden" role="listbox" aria-label="Slash commands"></div>
+            </div>
+
+            <div class="chatbar-controls-row">
+              <div class="chatbar-dropdowns">
+                <div class="pill-dropdown" id="aiDropdown">
+                  <button type="button" class="pill-trigger" id="aiDropdownTrigger">
+                    <span id="selectedAiLabel">✦ Gemini</span>
+                    <span class="caret">▾</span>
+                  </button>
+                  <div class="pill-menu hidden" id="aiDropdownMenu"></div>
+                </div>
+
+                <div class="pill-dropdown" id="modelDropdown">
+                  <button type="button" class="pill-trigger" id="modelDropdownTrigger">
+                    <span id="selectedModelLabel">Gemini 4 Hydrogen</span>
+                    <span class="caret">▾</span>
+                  </button>
+                  <div class="pill-menu hidden" id="modelDropdownMenu"></div>
+                </div>
+
+                <div class="pill-dropdown" id="thinkingDropdown">
+                  <button type="button" class="pill-trigger" id="thinkingDropdownTrigger">
+                    <span id="selectedThinkingLabel">Thinking: High</span>
+                    <span class="caret">▾</span>
+                  </button>
+                  <div class="pill-menu hidden" id="thinkingDropdownMenu">
+                    <div class="menu-section-title">Thinking level</div>
+                    <div class="menu-item selected" data-effort="HIGH">
+                      <div>
+                        <div class="menu-item-title">🔴 High</div>
+                        <div class="menu-item-sub">Full reasoning &amp; multi-step PC planning</div>
+                      </div>
+                      <span class="check-mark">✓</span>
+                    </div>
+                    <div class="menu-item" data-effort="MEDIUM">
+                      <div>
+                        <div class="menu-item-title">🟢 Medium</div>
+                        <div class="menu-item-sub">Balanced speed &amp; reasoning</div>
+                      </div>
+                      <span class="check-mark"></span>
+                    </div>
+                    <div class="menu-item" data-effort="LOW">
+                      <div>
+                        <div class="menu-item-title">🟡 Low</div>
+                        <div class="menu-item-sub">Fastest direct responses</div>
+                      </div>
+                      <span class="check-mark"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chatbar-right-actions">
+                <button id="stopPromptBtn" type="button" class="stop-run-btn" title="Stop the current response" aria-label="Stop response" disabled>
+                  <span class="stop-square">■</span><span class="stop-label">Stop</span>
+                </button>
+                <button id="sendPromptBtn" type="button" class="send-circle-btn" title="Send message" aria-label="Send message">➤</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="homeExtras" class="home-extras">
+            <div class="mode-pills-bar" role="tablist" aria-label="Quick modes">
+              <button type="button" class="mode-chip active" id="chatTaskModeChat">Chat</button>
+              <button type="button" class="mode-chip" id="chatTaskModePc">/pc Mode</button>
+              <button type="button" class="mode-chip" id="chatTaskModePreview">Preview</button>
+              <button type="button" class="mode-chip" id="chatTaskModePhotoEdit">Gemini Photo Edit</button>
+              <button type="button" class="mode-chip" id="chatTaskModeVideoEdit">Flow &amp; Gemini Video</button>
+            </div>
+            <div class="suggestion-list">
+              <button type="button" class="suggestion-btn" data-prompt="/pc open this pc and create Workspace/SnakeApp/index.html with a playable 2d snake game and show preview">⚡ /pc open This PC, create 2D Snake app &amp; show preview</button>
+              <button type="button" class="suggestion-btn" data-prompt="Edit this image with Gemini Nano Banana to make a neon purple cyberpunk city">🖼️ Edit or generate photo with Gemini Nano Banana</button>
+              <button type="button" class="suggestion-btn" data-prompt="Create a 6-second 16:9 cinematic video using Flow AI and Gemini Omni">🎬 Generate or edit video with Flow AI &amp; Gemini Omni</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PLUGINS VIEW (IN SIDEBAR) -->
+      <section id="pluginsView" class="stage-view">
+        <div class="studio-page studio-scroll">
+          <div class="studio-toolbar">
+            <div>
+              <h2>🧩 Plugins &amp; Connected Apps</h2>
+              <p class="muted">Connect Canva, Google Drive, Google Photos, your PC Bridge, or custom OpenAI-compatible APIs.</p>
+            </div>
+            <button id="pluginsBackToChatBtn" type="button" class="btn btn-outline">← Back to Chat</button>
+          </div>
+          <div class="plugin-grid" id="connectedPluginsGrid">
+            <article class="plugin-card" data-plugin-id="canva">
+              <div class="plugin-card-top">
+                <div class="plugin-icon">🎨</div>
+                <span id="pluginStatus-canva" class="badge badge-warn">Not Connected</span>
+              </div>
+              <h3>Canva</h3>
+              <p>Connect Canva inside AI UNIVERSE to save your workspace URL, attach design context in Chat, or launch Canva via <code>/pc</code>.</p>
+              <div id="pluginLinkedInfo-canva" class="plugin-linked-summary hidden"></div>
+              <div class="plugin-actions">
+                <button type="button" class="btn btn-primary btn-sm plugin-connect-btn" data-plugin-id="canva" data-default-url="https://www.canva.com/">Connect Canva</button>
+                <a class="btn btn-outline btn-sm plugin-web-link" data-plugin-id="canva" href="https://www.canva.com/" target="_blank" rel="noopener noreferrer">Open Web ↗</a>
+                <button type="button" class="btn btn-outline btn-sm plugin-chat-btn" data-plugin-id="canva" data-prompt="Design with Canva: ">Use in Chat</button>
+              </div>
+            </article>
+
+            <article class="plugin-card" data-plugin-id="drive">
+              <div class="plugin-card-top">
+                <div class="plugin-icon">📁</div>
+                <span id="pluginStatus-drive" class="badge badge-warn">Not Connected</span>
+              </div>
+              <h3>Google Drive</h3>
+              <p>Connect Google Drive inside AI UNIVERSE to link your Drive folder URL, open Drive in Chrome via <code>/pc</code>, or work with files in Chat.</p>
+              <div id="pluginLinkedInfo-drive" class="plugin-linked-summary hidden"></div>
+              <div class="plugin-actions">
+                <button type="button" class="btn btn-primary btn-sm plugin-connect-btn" data-plugin-id="drive" data-default-url="https://drive.google.com/">Connect Drive</button>
+                <a class="btn btn-outline btn-sm plugin-web-link" data-plugin-id="drive" href="https://drive.google.com/" target="_blank" rel="noopener noreferrer">Open Web ↗</a>
+                <button type="button" class="btn btn-outline btn-sm plugin-pc-btn" data-plugin-id="drive" data-pc-cmd="/pc open google drive in chrome">/pc Open</button>
+              </div>
+            </article>
+
+            <article class="plugin-card" data-plugin-id="photos">
+              <div class="plugin-card-top">
+                <div class="plugin-icon">📸</div>
+                <span id="pluginStatus-photos" class="badge badge-warn">Not Connected</span>
+              </div>
+              <h3>Google Photos</h3>
+              <p>Connect Google Photos inside AI UNIVERSE to save your album/library link, open Photos via <code>/pc</code>, or run Gemini photo/video prompts.</p>
+              <div id="pluginLinkedInfo-photos" class="plugin-linked-summary hidden"></div>
+              <div class="plugin-actions">
+                <button type="button" class="btn btn-primary btn-sm plugin-connect-btn" data-plugin-id="photos" data-default-url="https://photos.google.com/">Connect Photos</button>
+                <a class="btn btn-outline btn-sm plugin-web-link" data-plugin-id="photos" href="https://photos.google.com/" target="_blank" rel="noopener noreferrer">Open Web ↗</a>
+                <button type="button" class="btn btn-outline btn-sm plugin-chat-btn" data-plugin-id="photos" data-prompt="Edit or generate visual with Google Photos: ">Use in Chat</button>
+              </div>
+            </article>
+
+            <article class="plugin-card" data-plugin-id="pcbridge">
+              <div class="plugin-card-top">
+                <div class="plugin-icon">🖥️</div>
+                <span id="pluginStatus-pcbridge" class="badge badge-warn">Unlinked</span>
+              </div>
+              <h3>PC Bridge (/pc)</h3>
+              <p>Connect your local Windows PC Bridge (<code>http://localhost:5050</code>) to execute <code>/pc</code> actions, open sites in Chrome, and scaffold projects.</p>
+              <div class="plugin-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="pluginRefreshBridgeBtn">Connect Bridge</button>
+                <button type="button" class="btn btn-outline btn-sm open-settings-bridge-btn">Settings ⚙️</button>
+              </div>
+            </article>
+
+            <article class="plugin-card" data-plugin-id="customapi">
+              <div class="plugin-card-top">
+                <div class="plugin-icon">🔌</div>
+                <span id="pluginStatus-customapi" class="badge badge-warn">Not Connected</span>
+              </div>
+              <h3>Custom API</h3>
+              <p>Connect any OpenAI-compatible API endpoint with its Base URL, Model ID, and API key inside AI UNIVERSE.</p>
+              <div class="plugin-actions">
+                <button type="button" class="btn btn-primary btn-sm open-settings-custom-btn">Connect API ⚙️</button>
+                <button type="button" class="btn btn-outline btn-sm plugin-chat-btn" data-plugin-id="customapi" data-prompt="Use custom API: ">Use in Chat</button>
+              </div>
+            </article>
+          </div>
+
+          <div id="pluginConnectModal" class="plugin-connect-drawer hidden" role="dialog" aria-modal="false">
+            <div class="plugin-drawer-header">
+              <strong id="pluginDrawerTitle">Connect Plugin</strong>
+              <button type="button" id="closePluginDrawerBtn" class="btn btn-outline btn-sm">✕ Close</button>
+            </div>
+            <p id="pluginDrawerDesc" class="muted sm-top"></p>
+            <div class="plugin-drawer-fields sm-top">
+              <label class="label-xs" for="pluginWorkspaceUrlInput">Workspace / Folder / Library URL</label>
+              <input type="text" id="pluginWorkspaceUrlInput" class="text-input" placeholder="https://..." />
+              <label class="label-xs sm-top" for="pluginTokenInput">Account Label / Token / Note (optional)</label>
+              <input type="text" id="pluginTokenInput" class="text-input" placeholder="e.g. My Canva / Drive / Photos workspace" />
+            </div>
+            <div class="plugin-actions sm-top">
+              <button type="button" id="savePluginLinkBtn" class="btn btn-primary btn-sm">Save &amp; Connect</button>
+              <button type="button" id="disconnectPluginBtn" class="btn btn-outline btn-sm">Disconnect</button>
+            </div>
+          </div>
+
+          <p class="plugin-note">Connected plugins stay saved inside AI UNIVERSE and can be referenced in Chat or opened via <code>/pc</code>. Full third-party OAuth scopes or API keys still apply when external APIs or browser logins are used.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- QUICK PLUS MENU -->
+  <div id="quickPlusMenu" class="quick-plus-menu hidden">
+    <button type="button" class="menu-item" id="qpUploadFile"><span>📎 Upload Photo / Video / File / ZIP</span></button>
+    <button type="button" class="menu-item" id="qpInsertPcPrefix"><span>🖥️ Insert /pc Command Prefix</span></button>
+    <button type="button" class="menu-item" id="qpRequestPreview"><span>🌐 Ask for Preview in Chat</span></button>
+    <button type="button" class="menu-item" id="qpExportZip"><span>📦 Download Project ZIP</span></button>
+    <button type="button" class="menu-item" id="qpOpenPlugins"><span>🧩 Open Plugins</span></button>
+    <button type="button" class="menu-item" id="qpOpenSettings"><span>🔑 API Keys &amp; PC Bridge Settings</span></button>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <div id="imageLightbox" class="modal-backdrop hidden">
+    <div class="lightbox-inner">
+      <button id="closeLightboxBtn" class="icon-btn lightbox-close" aria-label="Close preview">✕</button>
+      <img id="lightboxImg" src="" alt="Preview" />
+      <div class="lightbox-bar">
+        <span id="lightboxCaption" class="muted"></span>
+        <a id="lightboxDownload" href="#" download="ai-universe-image.png" target="_blank" class="btn btn-success">⬇️ Download PNG</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATOR & ABOUT MODAL -->
+  <div id="creatorModal" class="modal-backdrop hidden">
+    <div class="modal-card compact-modal">
+      <div class="card-header">
+        <h2>✦ About AI UNIVERSE v6.9.3.1</h2>
+        <button id="closeCreatorBtn" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="creator-profile-card">
+          <div class="creator-avatar">AC</div>
+          <div>
+            <h3>Ayman Chowdhury (TLTOM)</h3>
+            <p class="muted">Creator, Developer &amp; Owner of AI UNIVERSE</p>
+          </div>
+        </div>
+        <p class="muted">AI UNIVERSE connects Gemini, Claude, ChatGPT, Flow AI, Antigravity, Grok, DeepSeek, and <code>/pc</code> bridge actions. Underlying foundation models belong to their respective providers.</p>
+        <div class="creator-links-grid">
+          <a class="creator-link-card" href="https://www.instagram.com/ayman.chowdhury.148/" target="_blank" rel="noopener">
+            <span>📸 Instagram</span>
+            <small>@ayman.chowdhury.148 ↗</small>
+          </a>
+          <a class="creator-link-card" href="https://wa.me/8801735051000" target="_blank" rel="noopener">
+            <span>💬 WhatsApp</span>
+            <small>01735051000 ↗</small>
+          </a>
+          <a class="creator-link-card" href="https://www.facebook.com/profile.php?id=61587149130343" target="_blank" rel="noopener">
+            <span>📘 Facebook</span>
+            <small>Official Profile ↗</small>
+          </a>
+          <a class="creator-link-card" href="https://github.com/aymanchowdhury1/" target="_blank" rel="noopener">
+            <span>💻 GitHub</span>
+            <small>github.com/aymanchowdhury1 ↗</small>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLOW / OVERLOADED MODEL CONFIRMATION MODAL -->
+  <div id="slowModelModal" class="modal-backdrop hidden">
+    <div class="modal-card compact-modal">
+      <div class="card-header">
+        <h2 id="slowModalTitle">⏳ Model Slow or Overloaded</h2>
+        <button id="closeSlowModalBtn" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="slowModalDesc" class="muted">The selected model has not responded yet or is temporarily at capacity. Keep waiting or explicitly confirm switching to another configured API model below.</p>
+        <div id="slowAltModelList" class="alt-model-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="slowModalWaitBtn" type="button" class="btn btn-outline">⏳ Keep Waiting</button>
+        <button id="slowModalAbortBtn" type="button" class="btn btn-danger">■ Stop Request</button>
+        <button id="slowModalConfirmSwitchBtn" type="button" class="btn btn-primary" disabled>✓ Confirm Switch</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL (ALL PROVIDERS: GEMINI, CLAUDE, CHATGPT, FLOW AI, ANTIGRAVITY, GROK, DEEPSEEK + PC BRIDGE) -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="card-header">
+        <h2>⚙️ AI UNIVERSE v6.9.3.1 API &amp; PC Settings</h2>
+        <button id="closeSettingsBtn" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" data-mtab="mtabApis">1. AI API Keys</button>
+        <button class="modal-tab-btn" data-mtab="mtabBridge">2. /pc Bridge</button>
+        <button class="modal-tab-btn" data-mtab="mtabCustom">3. + Custom API</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="mtabApis" class="modal-panel active">
+          <div class="info-banner">
+            🔑 <strong>API Keys Required Per Provider:</strong>
+            <br />• Google AI Studio Pro / consumer subscriptions are separate from Gemini API billing. Link Cloud Billing in Google AI Studio for Tier 1+ access and video generation (`gemini-omni-1.2-flash`).
+          </div>
+
+          <div class="setting-section">
+            <h3>Google AI Studio Key (Gemini, Antigravity, Nano Banana Photo &amp; Flow/Omni Video)</h3>
+            <p class="muted">Get key: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>
+            <div class="input-row">
+              <input id="geminiKeyInput" type="password" class="input-dark" placeholder="AIzaSy..." />
+              <button id="testGeminiKeyBtn" type="button" class="btn btn-outline">Test &amp; Sync Models</button>
+            </div>
+            <div id="geminiTestResult" class="test-result"></div>
+          </div>
+
+          <div class="setting-section">
+            <h3>Anthropic Claude API Key</h3>
+            <input id="claudeKeyInput" type="password" class="input-dark" placeholder="sk-ant-..." />
+          </div>
+
+          <div class="setting-section">
+            <h3>OpenAI / ChatGPT API Key</h3>
+            <input id="openaiKeyInput" type="password" class="input-dark" placeholder="sk-..." />
+          </div>
+
+          <div class="setting-section">
+            <h3>xAI Grok API Key</h3>
+            <input id="grokKeyInput" type="password" class="input-dark" placeholder="xai-..." />
+          </div>
+
+          <div class="setting-section">
+            <h3>DeepSeek API Key</h3>
+            <input id="deepseekKeyInput" type="password" class="input-dark" placeholder="sk-..." />
+          </div>
+
+          <div class="setting-section bridge-key-box">
+            <div class="row-between">
+              <h3>🖥️ Local PC Bridge Key Store (Optional)</h3>
+              <span id="bridgeServerKeyStatus" class="badge badge-warn">Not Linked</span>
+            </div>
+            <p class="muted">Saves keys into <code>pc-bridge/.bridge-keys.json</code> on your PC so Gemini/Video requests can proxy through your local Node server.</p>
+            <label class="checkbox-row sm-top">
+              <input type="checkbox" id="useBridgeProxyCheck" />
+              <span>Proxy Gemini / Photo / Video requests through local PC Bridge server when connected</span>
+            </label>
+            <button id="pushKeysToBridgeBtn" type="button" class="btn btn-outline sm-top">🔐 Save Keys to Local PC Bridge Server</button>
+          </div>
+        </div>
+
+        <div id="mtabBridge" class="modal-panel">
+          <div class="info-banner">
+            🖥️ <strong>Enable <code>/pc</code> Across All AI Models:</strong>
+            <br />1. Double-click <code>pc-bridge/START_PC_BRIDGE.bat</code> on your PC.
+            <br />2. Paste the printed <strong>PC Bridge Token</strong> below.
+            <br />3. Use <code>http://localhost:5050</code> on PC, or run <code>START_ONLINE_TUNNEL.bat</code> for Android remote access.
+          </div>
+
+          <div class="setting-section">
+            <h3>PC Bridge URL</h3>
+            <input id="bridgeUrlInput" type="text" class="input-dark" placeholder="http://localhost:5050 or https://xxxx.trycloudflare.com" />
+          </div>
+
+          <div class="setting-section">
+            <h3>PC Bridge Security Token</h3>
+            <input id="bridgeTokenInput" type="password" class="input-dark" placeholder="AIU-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" />
+          </div>
+
+          <div class="setting-section">
+            <h3>Approved PC Workspace Directories (One per line)</h3>
+            <textarea id="approvedRootsInput" rows="3" class="input-dark" placeholder="Connect PC Bridge to load approved workspace folders..."></textarea>
+            <button id="saveApprovedRootsBtn" type="button" class="btn btn-outline sm-top">💾 Save Approved Folders</button>
+          </div>
+
+          <div class="input-row">
+            <button id="testBridgeBtn" type="button" class="btn btn-success">🔌 Test PC Bridge Connection</button>
+          </div>
+          <div id="bridgeTestResult" class="test-result"></div>
+        </div>
+
+        <div id="mtabCustom" class="modal-panel">
+          <div class="setting-section">
+            <h3>+ Add OpenAI-Compatible API Endpoint</h3>
+            <div class="grid-2">
+              <input id="customAiName" type="text" class="input-dark" placeholder="Provider Name" />
+              <input id="customAiModel" type="text" class="input-dark" placeholder="Model ID" />
+              <input id="customAiUrl" type="text" class="input-dark" placeholder="Base URL (https://.../v1)" />
+              <input id="customAiKey" type="password" class="input-dark" placeholder="API Key (Required)" />
+            </div>
+            <button id="addCustomAiBtn" type="button" class="btn btn-primary sm-top">+ Add Custom API</button>
+          </div>
+
+          <div class="setting-section">
+            <h3>Saved Custom APIs</h3>
+            <div id="customAiList" class="custom-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="saveSettingsBtn" class="btn btn-primary">💾 Save &amp; Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PC ACTION APPROVAL MODAL -->
+  <div id="pcApprovalModal" class="modal-backdrop hidden">
+    <div class="modal-card compact-modal">
+      <div class="card-header">
+        <h2 id="pcApprovalTitle">🛡️ Approve /pc Action?</h2>
+        <span id="pcApprovalRiskBadge" class="badge badge-warn">Confirm Required</span>
+      </div>
+      <div class="modal-body">
+        <p id="pcApprovalReason" class="muted">Review the action validated by your local PC Bridge before approving:</p>
+        <div id="pcApprovalPreviewBox" class="approval-preview-box"></div>
+        <details class="thought-details">
+          <summary>Inspect raw action payload ▾</summary>
+          <textarea id="pendingPcCommandInput" rows="4" class="code-viewer editable-code" readonly></textarea>
+        </details>
+      </div>
+      <div class="modal-footer">
+        <button id="denyPcBtn" class="btn btn-outline">✕ Reject</button>
+        <button id="approvePcBtn" class="btn btn-success">✓ Approve &amp; Execute</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/firebase-config.js?v=6.9.10"></script>
+  <script src="js/firebase-sync.js?v=6.9.10"></script>
+  <script src="js/app.js?v=6.9.10"></script>
+</body>
+</html>
